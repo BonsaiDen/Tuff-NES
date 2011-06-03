@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+from PIL import Image
+import sys, os
+
+def convert(filename):
+    img = Image.open(filename)
+    width, height = img.size
+
+    if width % 8 != 0 or height % 8 != 0:
+        raise IOError('Error: Image size is not a multiple of 8!')
+
+    pixels = list(img.getdata())
+    palette = []
+
+    # count colors
+    for i in pixels:
+        if i in palette:
+            pass
+
+        elif len(palette) == 4:
+            print palette
+            raise ValueError('Error: Image has more than 4 colors!')
+
+        else:
+            palette.append(i)
+
+    # Palette
+    palette.sort()
+    print 'Found %d colors: %s' % (len(palette), ', '.join(['0x' + hex(i)[2:].ljust(2, '0').upper() for i in palette]))
+
+    # pad to 4 bytes
+    while len(palette) < 4:
+        palette.append(0)
+
+    # Convert tiles; we store 4 pixels into one byte
+    chr_bank = []
+
+    for ty in range(0, height, 8):
+        for tx in range(0, width, 8):
+
+            for y in range(ty, ty + 8):
+
+                low_byte = 0
+                for x in range(tx, tx + 8):
+                    low_byte *= 2
+                    value = palette.index(pixels[y * width + x])
+                    low_byte += value & 1
+
+                chr_bank.append(chr(low_byte))
+
+            for y in range(ty, ty + 8):
+
+                high_byte = 0
+                for x in range(tx, tx + 8):
+
+                    high_byte *= 2
+                    value = palette.index(pixels[y * width + x])
+                    high_byte += (value >> 1) & 1
+
+                chr_bank.append(chr(high_byte))
+
+    # Pad the chr file
+    while len(chr_bank) < 8192:
+        chr_bank.append(chr(0))
+        
+    # Save the data
+    name, _ = os.path.splitext(filename)
+    with open(name + '.chr', 'wb') as f:
+        f.write(''.join(chr_bank))
+    
+    print 'Saved bank "%s.chr"' % name
+
+    with open(name + '.plt', 'wb') as f:
+        f.write(''.join([chr(i) for i in palette]))
+
+    print 'Saved palette "%s.plt"' % name
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print 'Usage: img2chr [filename]'
+
+    else:
+        convert(sys.argv[1])
+
