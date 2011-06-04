@@ -7,11 +7,19 @@ logic_init:
         jsr    logic_reset_fall
         jsr    logic_reset_move
 
+        ;lda    #$02
+        ;sta    frame
+
         rts
 
 
 ; Mainloop --------------------------------------------------------------------
 logic:
+
+        ;dec    frame
+        ;bne    @no_logic
+        ;lda    #$02
+        ;sta    frame
 
         jsr    logic_gravity
         jsr    logic_move
@@ -21,6 +29,7 @@ logic:
         lda    #$01
         sta    needdraw
 
+;@no_logic:
         rts
 
 ; includes

@@ -2,6 +2,7 @@
 ; engine
 sleeping:               .res    1
 needdraw:               .res    1
+frame:                  .res    1
 
 ; globals
 buttons:                .res    1

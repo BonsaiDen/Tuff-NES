@@ -24,16 +24,33 @@ logic_move:
 
 @no_dec_tick:
 
+        ; check whether no direction is pressed
+        lda    buttons
+        and    #%00000011
+        eor    #%00000011
+        cmp    #$03
+        bne    @none
+
+        lda    #MOVE_INC_START
+        sta    move_inc_tick_counter
+@none:
+
         jsr    logic_move_right
         jsr    logic_move_left
+
         rts
 
 
 logic_increase_speed:
 
+        ldx    #$00
+
         lda    buttons
         and    #%0000001
         beq    @no_right
+
+        lda    #MOVE_DEC_INTERVAL
+        sta    move_dec_tick_counter
 
         ; increase until maximum is reached
         lda    player_speed_right
@@ -47,6 +64,9 @@ logic_increase_speed:
         and    #%0000010
         beq    @no_left
 
+        lda    #MOVE_DEC_INTERVAL
+        sta    move_dec_tick_counter
+
         ; increase until maximum is reached
         lda    player_speed_left
         cmp    #PLAYER_SPEED_MAX
@@ -54,6 +74,7 @@ logic_increase_speed:
         inc    player_speed_left
 
 @no_left:
+
         rts
 
 logic_decrease_speed:
