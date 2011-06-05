@@ -28,10 +28,12 @@ data_player_sprites:
 
 
 data_player_animation:
+        
+        ; TODO make these smaller by defining a length...
 
         ; 0: idle
         .byte   $00,$01,$00,$01, $00,$02,$00,$01 ; image ids
-        .byte   $E0,$08,$07,$09, $A0,$35,$C0,$08 ; time in frames
+        .byte   $F0,$08,$07,$09, $B0,$35,$D0,$08 ; time in frames
 
         ; 1: walking
         .byte   $04,$05,$06,$07, $FF,$FF,$FF,$FF
