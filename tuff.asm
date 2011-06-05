@@ -85,6 +85,7 @@ load_sprites:
         ; custom init code
         jsr init
         
+
 forever:
         inc     sleeping        ; fall asleep
 
