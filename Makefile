@@ -28,7 +28,7 @@ $(BUILD_DIR)/$(PROGRAM).nes: graphics
 	$(CL) $(CLFLAGS) -o $(PROGRAM).nes $(SOURCES)
 	mv $(PROGRAM).o $(BUILD_DIR)/$(PROGRAM).o
 
-open: $(BUILD_DIR)/$(PROGRAM).nes
+open: dirs $(BUILD_DIR)/$(PROGRAM).nes
 	nestra $(PROGRAM).nes
 
 clean:
