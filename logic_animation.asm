@@ -6,15 +6,15 @@
 ; Animation Control ( A ) -----------------------------------------------------
 logic_animation:
 
-        jsr    logic_player_animation_update
-        jsr    logic_player_animation_play
+        jsr    logic_animation_update
+        jsr    logic_animation_play
 
 @no_tick:
         rts
 
 
 ; Update Player Animations ( A, X ) -------------------------------------------
-logic_player_animation_update:
+logic_animation_update:
 
         ; store the current animation
         lda    player_animation
@@ -80,13 +80,13 @@ logic_player_animation_update:
         ; update animation frame / length
         lda    #$00
         sta    player_animation_frame
-        jsr    logic_player_animation_index
+        jsr    logic_animation_index
 
 @no_change: ; did not change
         rts
 
 ; Play the current animation (A, Y, X) -----------------------------------------
-logic_player_animation_index:
+logic_animation_index:
         
         lda    #$00
         ldy    player_animation
@@ -116,7 +116,7 @@ logic_player_animation_index:
 
 
 ; Play the animation ( A ) ----------------------------------------------------
-logic_player_animation_play:
+logic_animation_play:
 
 @no_end:
 
@@ -132,14 +132,14 @@ logic_player_animation_play:
         
         lda    #$00
         sta    player_animation_frame
-        jsr    logic_player_animation_index
+        jsr    logic_animation_index
         rts
 
 @next_frame:
 
         ; go to next frame
         inc    player_animation_frame
-        jsr    logic_player_animation_index
+        jsr    logic_animation_index
 
         lda    player_image
         cmp    #$FF
@@ -147,7 +147,7 @@ logic_player_animation_play:
 
         lda    #$00
         sta    player_animation_frame
-        jsr    logic_player_animation_index
+        jsr    logic_animation_index
 
 @frame_wait:
         rts
