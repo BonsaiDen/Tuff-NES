@@ -3,78 +3,112 @@ from PIL import Image
 import sys, os
 
 def convert(filename):
+
     img = Image.open(filename)
     width, height = img.size
 
-    if width % 8 != 0 or height % 8 != 0:
-        raise IOError('Error: Image size is not a multiple of 8!')
+    if width  != 128 or height != 272:
+        raise IOError('Error: Image size needs to be 128x272')
 
     pixels = list(img.getdata())
-    palette = []
 
-    # count colors
-    for i in pixels:
-        if i in palette:
-            pass
+    # Foreground
+    fg_offset = 0
+    fg_tile_offset = fg_offset + 1024
+    fg_palette = get_palette(pixels[fg_offset:fg_tile_offset])
+    fg_tiles = get_tiles(pixels[fg_tile_offset:fg_tile_offset + 16384], fg_palette)
 
-        elif len(palette) == 4:
-            print palette
-            raise ValueError('Error: Image has more than 4 colors!')
+    # Background
+    bg_offset = fg_tile_offset + 16384
+    bg_tile_offset = bg_offset + 1024
 
-        else:
-            palette.append(i)
-
-    # Palette
-    palette.sort()
-    print 'Found %d colors: %s' % (len(palette), ', '.join(['0x' + hex(i)[2:].ljust(2, '0').upper() for i in palette]))
-
-    # pad to 4 bytes
-    while len(palette) < 4:
-        palette.append(0)
-
-    # Convert tiles; we store 4 pixels into one byte
-    chr_bank = []
-
-    for ty in range(0, height, 8):
-        for tx in range(0, width, 8):
-
-            for y in range(ty, ty + 8):
-
-                low_byte = 0
-                for x in range(tx, tx + 8):
-                    low_byte *= 2
-                    value = palette.index(pixels[y * width + x])
-                    low_byte += value & 1
-
-                chr_bank.append(chr(low_byte))
-
-            for y in range(ty, ty + 8):
-
-                high_byte = 0
-                for x in range(tx, tx + 8):
-
-                    high_byte *= 2
-                    value = palette.index(pixels[y * width + x])
-                    high_byte += (value >> 1) & 1
-
-                chr_bank.append(chr(high_byte))
-
-    # Pad the chr file
-    while len(chr_bank) < 8192:
-        chr_bank.append(chr(0))
-        
+    bg_palette = get_palette(pixels[bg_offset:bg_tile_offset])
+    bg_tiles = get_tiles(pixels[bg_tile_offset:bg_tile_offset + 16384], bg_palette)
+    
     # Save the data
     name, _ = os.path.splitext(filename)
-    with open(name + '.chr', 'wb') as f:
-        f.write(''.join(chr_bank))
-    
-    print 'Saved bank "%s.chr"' % name
-
     with open(name + '.plt', 'wb') as f:
-        f.write(''.join([chr(i) for i in palette]))
+        f.write(''.join([''.join([chr(i) for i in entry]) for entry in bg_palette]))
+        f.write(''.join([''.join([chr(i) for i in entry]) for entry in fg_palette]))
 
     print 'Saved palette "%s.plt"' % name
 
+    with open(name + '.chr', 'wb') as f:
+        f.write(fg_tiles)
+        f.write(bg_tiles)
+    
+    print 'Saved data "%s.chr"' % name
+
+
+def get_palette(pixels):
+    return [sorted([pixels[i] for i in range(p * 32, (p + 1) * 32, 8)]) for p in range(4)]
+
+
+def get_tiles(pixels, palette):
+
+    tiles = []
+    for ty in range(16):
+        for tx in range(16):
+
+            tile = []
+            for py in range(8):
+                for px in range(8):
+                    tile.append(pixels[(ty * 8 + py) * 128 + (tx * 8 + px)])
+            
+            tiles.append(tile)
+
+    # convert colors to palette entries
+    for t in tiles:
+
+        colors = sorted(list(set(t)))
+        entry = find_palette_entry(colors, palette)
+
+        if entry is None:
+            print 'Error: Tile colors do not match any palette entry'
+            return None
+
+        for p in range(64):
+            t[p] = entry.index(t[p])
+
+    # convert to NES format
+    char_tiles = []
+    for t in tiles:
+
+        lows = []
+        highs = []
+        
+        for y in range(8):
+
+            low, high = 0, 0
+            for x in range(8):
+                pixel = t[y * 8 + x]
+                low *= 2
+                low += pixel & 1
+
+                high *= 2
+                high += (pixel >> 1) & 1 
+
+            lows.append(chr(low))
+            highs.append(chr(high))
+        
+        char_tiles.extend(lows)
+        char_tiles.extend(highs)
+            
+    return ''.join(char_tiles)
+
+def find_palette_entry(colors, palette):
+    for entry in palette:
+
+        match = True
+        for c in range(len(colors)):
+            if not colors[c] in entry:
+                match = False
+                break
+            
+        if match:
+            return entry
+    
+    return None
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
